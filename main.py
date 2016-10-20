@@ -1,9 +1,11 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import sys
-from pysnmp import *
+import pysnmp
+import os
 from socket import *
 from netaddr import *
+from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 
 
@@ -20,11 +22,17 @@ janelaApp.setGeometry(200, 200, 820, 620)
 # Entrada de Dados
 inputIP = QLineEdit()
 inputMask = QLineEdit()
+inputIPAlvo = QLineEdit()
+
 
 
 # Botoes
 bntSRede = QPushButton("Calcular Redes")
+bntAlvo = QPushButton("Alvo")
 bntSRede.setFixedWidth(150)
+bntAlvo.setFixedWidth(150)
+
+
 
 
 # Saida de dados
@@ -40,23 +48,40 @@ txtDisplay.setStyleSheet("QTextEdit {background-color:black;color:white}")
 
 
 
+def check_online(host):
+
+    resposta= os.system("ping -c 1 %s" % host)
+
+    if resposta == 0:
+        pingstatus = "<span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
+    else:
+        pingstatus = "<span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
+
+    return pingstatus
+
+
+
+
+
 def escrever(redes):
-
-
+    txtDisplay.clear()
 
     TAMANHO = redes.size
 
     txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>Informações</span>")
     txtDisplay.append("<span style='color:red;font-weight:lighter'>===============</span>")
-    txtDisplay.append("<span style='color:yellow'>Numero de Redes:</span><span style='color:white;font-weight:bold'> %s</span>" % TAMANHO)
+    txtDisplay.append("<span style='color:yellow'>Mascara da Rede:</span><span style='color:white;font-weight:bold'> %s</span>" % redes.netmask)
+    txtDisplay.append("<span style='color:yellow'>Numero de Hosts:</span><span style='color:white;font-weight:bold'> %s</span>" % TAMANHO)
+    txtDisplay.append("<span style='color:yellow'>Faixa de IP:</span><span style='color:white;font-weight:bold'>  %s <span style='color:yellow'> até </span>   %s </span>"  % (redes[1],redes[redes.__len__() - 2]))
+
+    txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>:: Maquinas Online ::</span>")
+    txtDisplay.append("<span style='color:red;font-weight:lighter'>===============</span>")
 
 
-    proximo_char = 0x00
 
+    for ip in redes:
 
-    for rede in redes:
-
-      txtDisplay.append("95")
+        txtDisplay.append("Host --> %s  %s " % (ip,check_online(ip)))
 
 
 
@@ -78,7 +103,10 @@ def startJanela():
   vbox1.addWidget(inputIP)
   vbox1.addWidget(QLabel("Mascara de Rede:"))
   vbox1.addWidget(inputMask)
+
   vbox1.addWidget(bntSRede)
+  vbox1.addWidget(inputIPAlvo)
+  vbox1.addWidget(bntAlvo)
   vbox1.addStretch()
 
   # Saida
@@ -103,9 +131,39 @@ def obterRedes():
 
 
 
+def getDescHost():
+  txtDisplay.clear()
+
+  txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>Informação do Host</span>")
+
+  alvoTexto = inputIPAlvo.text()
+  alvo = alvoTexto[:15]
+  cmdGen = cmdgen.CommandGenerator()
+
+  errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+    cmdgen.CommunityData('public', mpModel=0),
+    cmdgen.UdpTransportTarget((alvo, 161)),
+    cmdgen.MibVariable('iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0'),
+    cmdgen.MibVariable('SNMPv2-MIB', 'sysDescr', 0)
+  )
+
+  # Check for errors and print out results
+  if errorIndication:
+    txtDisplay.append(str(errorIndication))
+
+  else:
+    if errorStatus:
+
+      txtDisplay.append('%s at %s' % (errorStatus.prettyPrint(), errorIndex and varBinds[int(errorIndex) - 1] or '?'))
+
+
+    else:
+      for nome, val in varBinds:
+        txtDisplay.append('%s = %s' % (nome.prettyPrint(), val.prettyPrint()))
+
 # Comandos
 bntSRede.clicked.connect(obterRedes)
-
+bntAlvo.clicked.connect(getDescHost)
 
 
 

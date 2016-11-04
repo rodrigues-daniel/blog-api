@@ -4,13 +4,14 @@ import sys
 import pysnmp
 import os
 import threading
+import subprocess
 import time
 from socket import *
 from netaddr import *
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.hlapi import  getCmd
 
-
+STATUS_ATIVO = False
 redes_global = []
 # Definindo a Janela
 app = QApplication(sys.argv)
@@ -81,16 +82,16 @@ def startJanela():
 
 
 def check_online(host):
-  resposta = os.system('ping -n 1 {}'.format(host))
-  time.sleep(1)
-
-  if resposta == 0:
-    pingstatus = "<span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
-    # txtDisplay.append("Host --> %s  %s " % (host, pingstatus))
-
-  else:
-    pingstatus = "<span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
-    # txtDisplay.append("Host --> %s  %s " % (host, pingstatus))
+  with open(os.devnull, 'w') as DEVNULL:
+    try:
+      subprocess.check_call(
+        ['ping', '-c', '1', host],
+        stdout=DEVNULL,  # suppress output
+        stderr=DEVNULL
+      )
+      STATUS_ATIVO = True
+    except subprocess.CalledProcessError:
+      STATUS_ATIVO = False
 
 
 def escrever(redes):
@@ -115,11 +116,32 @@ def escrever(redes):
 
   txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>:: Maquinas Online ::</span>")
   txtDisplay.append("<span style='color:red;font-weight:lighter'>===============</span>")
+
+  STATUS_FORMATO_ATIVO = "<span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
+  STATUS_FORMATO_INATIVO = "<span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
+
+
+
   threads = []
   for ip in redes_global:
-    t = threading.Thread(target=check_online, args=(ip,))
-    threads.append(t)
+    t = threading.Thread(target=check_online, args=(str(ip),))
+
+
+    if STATUS_ATIVO == True:
+      txtDisplay.append("Host --> %s  %s " % (ip,STATUS_FORMATO_ATIVO))
+      threads.append(t)
+
+
+    else:
+      txtDisplay.append("Host --> %s  %s " % (ip,STATUS_FORMATO_INATIVO))
+      threads.append(t)
+
+
     t.start()
+
+
+
+
 
 
 

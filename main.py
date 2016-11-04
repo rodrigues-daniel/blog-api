@@ -9,9 +9,14 @@ import time
 from socket import *
 from netaddr import *
 from pysnmp.entity.rfc3413.oneliner import cmdgen
-from pysnmp.hlapi import  getCmd
+from pysnmp.hlapi import getCmd
+
 
 STATUS_ATIVO = False
+HOST_IP = None
+STATUS_FORMATO_ATIVO = " <span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
+STATUS_FORMATO_INATIVO = " <span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
+
 redes_global = []
 # Definindo a Janela
 app = QApplication(sys.argv)
@@ -21,14 +26,10 @@ janelaApp.setGeometry(200, 200, 820, 620)
 
 
 
-
-
 # Entrada de Dados
 inputIP = QLineEdit()
 inputMask = QLineEdit()
 inputIPAlvo = QLineEdit()
-
-
 
 # Botoes
 bntSRede = QPushButton("Calcular Redes")
@@ -37,17 +38,11 @@ bntSRede.setFixedWidth(150)
 bntAlvo.setFixedWidth(150)
 
 
-
-
 # Saida de dados
 txtDisplay = QTextEdit()
 txtDisplay.setFixedHeight(600)
 txtDisplay.setFixedWidth(800)
 txtDisplay.setStyleSheet("QTextEdit {background-color:black;color:white}")
-
-
-
-
 
 
 def startJanela():
@@ -70,7 +65,6 @@ def startJanela():
   # Saida
   vbox2.addWidget(QLabel("Saida do Processamento:"))
 
-
   vbox2.addWidget(txtDisplay)
   vbox2.addStretch()
 
@@ -81,23 +75,9 @@ def startJanela():
   janelaApp.show()
 
 
-def check_online(host):
-  with open(os.devnull, 'w') as DEVNULL:
-    try:
-      subprocess.check_call(
-        ['ping', '-c', '1', host],
-        stdout=DEVNULL,  # suppress output
-        stderr=DEVNULL
-      )
-      STATUS_ATIVO = True
-    except subprocess.CalledProcessError:
-      STATUS_ATIVO = False
-
 
 def escrever(redes):
   txtDisplay.clear()
-
-  redes_global = redes
 
   TAMANHO = redes.size
 
@@ -117,45 +97,31 @@ def escrever(redes):
   txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>:: Maquinas Online ::</span>")
   txtDisplay.append("<span style='color:red;font-weight:lighter'>===============</span>")
 
-  STATUS_FORMATO_ATIVO = "<span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
-  STATUS_FORMATO_INATIVO = "<span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
+
+def check_online(redes):
 
 
+  for host_ip in redes:
 
-  threads = []
-  for ip in redes_global:
-    t = threading.Thread(target=check_online, args=(str(ip),))
+    try:
 
+      subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+      universal_newlines = True
+      txtDisplay.append("Host --> %s  %s " % (host_ip, STATUS_FORMATO_ATIVO))
 
-    if STATUS_ATIVO == True:
-      txtDisplay.append("Host --> %s  %s " % (ip,STATUS_FORMATO_ATIVO))
-      threads.append(t)
-
-
-    else:
-      txtDisplay.append("Host --> %s  %s " % (ip,STATUS_FORMATO_INATIVO))
-      threads.append(t)
-
-
-    t.start()
-
-
-
+    except subprocess.CalledProcessError:
+      txtDisplay.append("Host --> %s  %s " % (host_ip, STATUS_FORMATO_INATIVO))
 
 
 
 
 def obterRedes():
-  calcularRedes(inputIP.text(),inputMask.text())
-
+  calcularRedes(inputIP.text(), inputMask.text())
 
 
 
 def getDescHost():
   txtDisplay.clear()
-
-
-
 
   txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>Informação do Host</span>")
 
@@ -169,8 +135,6 @@ def getDescHost():
     cmdgen.MibVariable('iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0'),
     cmdgen.MibVariable('SNMPv2-MIB', 'sysDescr', 0)
   )
-
-
 
   # Check for errors and print out results
   if errorIndication:
@@ -187,21 +151,22 @@ def getDescHost():
         txtDisplay.append('%s = %s' % (nome.prettyPrint(), val.prettyPrint()))
 
 
-
-
-
 def calcularRedes(ipRede, maskRede):
+  netaddr = ipRede[:15]  # endereço IP de rede
+  netmask = maskRede.strip('/')[:15]  # máscara /24 ou 255.255.255.0
 
-    netaddr = ipRede[:15]  # endereço IP de rede
-    netmask = maskRede.strip('/')[:15]  # máscara /24 ou 255.255.255.0
+  redes = IPNetwork(netaddr + '/' + netmask)
+  escrever(redes)
 
-    redes = IPNetwork(netaddr + '/' + netmask)
-    escrever(redes)
+  check_online(redes)
+
+
+
+
 
 
 
 if __name__ == '__main__':
-
   startJanela()
 
   # Comandos
@@ -209,3 +174,17 @@ if __name__ == '__main__':
   bntAlvo.clicked.connect(getDescHost)
 
   sys.exit(app.exec_())
+
+
+
+
+
+
+
+
+
+
+
+
+
+

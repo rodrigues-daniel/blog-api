@@ -95,7 +95,7 @@ def escrever(redes):
       redes.__len__() - 1])
 
   txtDisplay.append("<span style='color:#00FFFF;font-weight:bold'>:: Maquinas Online ::</span>")
-  txtDisplay.append("<span style='color:red;font-weight:lighter'>===============</span>")
+  txtDisplay.append("<span style='color:red;font-weight:lighter'>=========================================================================</span>")
 
 
 def check_online(redes):
@@ -105,18 +105,46 @@ def check_online(redes):
 
     try:
 
-      subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
-      universal_newlines = True
-      txtDisplay.append("Host --> %s  %s " % (host_ip, STATUS_FORMATO_ATIVO))
+      #resposta = subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+      #universal_newlines = True
+
+      resposta = ()
+
+
+      if os.name == 'nt':
+
+
+        resposta = subprocess.getstatusoutput('ping -n 1 %s' % host_ip)
+
+      else:
+
+        resposta = subprocess.getstatusoutput('ping -c 1 %s' % host_ip)
+
+
+      texto = resposta[1] # retirando resposta de uma tupla
+      ltexto = texto.lower()
+      posi_inacessivel = ltexto.find("inacess")  # Resposta para Destino inacessivel
+      posi_tempo_esgotado = ltexto.find("esgotado")  # Resposta para Destino inacessivel
+      inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
+      tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
+
+
+
+      if inacessivel != 'inacess':
+
+        if tempo_esgotado == 'esgotado':
+          txtDisplay.append("Host Inativo --> %s  %s " % (host_ip, STATUS_FORMATO_INATIVO))
+        else:
+          txtDisplay.append("Host --> %s  %s " % (host_ip, STATUS_FORMATO_ATIVO))
+
 
     except subprocess.CalledProcessError:
-      txtDisplay.append("Host --> %s  %s " % (host_ip, STATUS_FORMATO_INATIVO))
+      txtDisplay.append("Erro de Procssamento")
 
 
 
 
-def obterRedes():
-  calcularRedes(inputIP.text(), inputMask.text())
+
 
 
 
@@ -157,10 +185,12 @@ def calcularRedes(ipRede, maskRede):
 
   redes = IPNetwork(netaddr + '/' + netmask)
   escrever(redes)
-
   check_online(redes)
 
 
+
+def obterRedes():
+  calcularRedes(inputIP.text(), inputMask.text())
 
 
 

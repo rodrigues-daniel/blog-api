@@ -247,7 +247,7 @@ class MainGui(QWidget):
     if status == 'INATIVO':
       self.txtDisplay.append("HOST %s %s" % (ip,self.STATUS_FORMATO_INATIVO,))
     else:
-      self.txtDisplay.append("HOST %s  %s  %s" % (ip,self.STATUS_FORMATO_ATIVO,estado_porta))
+      self.txtDisplay.append("HOST %s  %s   &#160; &#160; &#160; <span style='color:#ffffff;font-weight:bold'> %s </span>" % (ip,self.STATUS_FORMATO_ATIVO,estado_porta))
 
 
 

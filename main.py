@@ -6,7 +6,7 @@ import os
 import threading
 import subprocess
 import time
-from socket import *
+import socket
 from netaddr import *
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.hlapi import getCmd
@@ -15,26 +15,21 @@ app = QApplication(sys.argv)
 
 class RedesThread(QThread):
 
-  def __init__(self, redes, parent=app):
+  def __init__(self,redes, parent=app):
 
-      self.rede = redes
+      self.lista_de_redes = redes
 
       QThread.__init__(self, parent)
 
-      self.signal =  SIGNAL("ops")
-      self.novaResposta = SIGNAL("resposta")
-
-
-
+      self.signal =  SIGNAL("status")
 
 
   def run(self):
     # time.sleep(2)
-    self.emit(SIGNAL("ops"), "emitindo sinal asdfasd f fs")
 
-    for host_ip in range(2):
 
-      print(host_ip)
+    for host_ip in self.lista_de_redes:
+
 
       try:
 
@@ -47,31 +42,46 @@ class RedesThread(QThread):
 
           resposta = subprocess.getstatusoutput('ping -n 1 %s' % host_ip)
 
+
         else:
 
           resposta = subprocess.getstatusoutput('ping -c 1 %s' % host_ip)
 
         texto = resposta[1]  # retirando resposta de uma tupla
         ltexto = texto.lower()
-        posi_inacessivel = ltexto.find("inacess")  # Resposta para Destino inacessivel
-        posi_tempo_esgotado = ltexto.find("esgotado")  # Resposta para Destino inacessivel
+
+        posi_inacessivel = ltexto.find('inacess')  # Resposta para Destino inacessivel
+
+        posi_tempo_esgotado = ltexto.find('esgotado')  # Resposta para Destino inacessivel
         inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
+
+
         tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
 
-        if inacessivel != 'inacess':
-          self.emit(self.signal, "insacessivel")
-          print("inacessivel")
-          if tempo_esgotado == 'esgotado':
-            print("esgotado tempo limite")
 
-            self.emit(self.signal, "%XXXX INATIVO")
-          else:
-            self.emit(self.signal, "ATIVO XXXXXXXXXX")
+        if( inacessivel == 'inacess' or tempo_esgotado == 'esgotado') :
+
+         self.emit(self.signal,'INATIVO',host_ip,"0")
+
+        else:
+          s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+          porta = 22
+          estado_porta = ""
+          try:
+
+            s.connect((host_ip, porta))
+            estado_porta = 'Porta {} Aberta'.format(porta)
+          except:
+            estado_porta = 'Porta {} Fechada'.format(porta)
+
+          s.close()
+          self.emit(self.signal,'ATIVO',host_ip,estado_porta)
+
 
 
       except subprocess.CalledProcessError:
 
-        self.emit(self.novaResposta, "Erro de Procssamento")
+        self.emit(self.signal, "Erro de Procssamento")
 
 
 class MainGui(QWidget):
@@ -82,10 +92,8 @@ class MainGui(QWidget):
 
 
 
-      self.STATUS_ATIVO = False
-      self.HOST_IP = None
-      self.STATUS_FORMATO_ATIVO = " <span style='color:#80ff00;font-weight:bold'>Ativo  ;)</span>"
-      self.STATUS_FORMATO_INATIVO = " <span style='color:#ff0000;font-weight:bold'>Inativo  :(</span>"
+      self.STATUS_FORMATO_ATIVO = "     &#160; &#160; &#160;<span style='color:#ff0000;font-weight:bold'>&#174;</span><span style='color:#80ff00;font-weight:bold;'> ATIVO </span>"
+      self.STATUS_FORMATO_INATIVO = "     &#160; &#160; &#160;<span style='color:#ff0000;font-weight:bold'>&#8224;</span><span style='color:#ff0000;font-weight:bold;'> INATIVO </span>"
 
 
 
@@ -107,10 +115,7 @@ class MainGui(QWidget):
       self.bntSRede = QPushButton("Calcular Rede")
       self.connect(self.bntSRede,SIGNAL("clicked()"),self.obterRedes)
 
-      self.bntAlvo = QPushButton("Alvo")
-      self.connect(self.bntAlvo,SIGNAL("clicked()"), self.appinit)
-
-
+      self.bntAlvo = QPushButton("Obter Info")
 
 
 
@@ -153,49 +158,6 @@ class MainGui(QWidget):
 
 
 
-  def scanearRede(self):
-    self.obterRedes()
-    self.thread = RedesThread(self.redes)
-    self.connect(self.thread, self.thread.signal, self.tratarRespostaThread)
-    self.thread.start()
-
-  def tratarRespostaThread(self,resposta):
-
-
-        print(resposta)
-
-
-        if resposta != 'inacess':
-
-          if resposta == 'esgotado':
-            self.txtDisplay.append("Host Inativo --> %s  %s " % (resposta, self.STATUS_FORMATO_INATIVO))
-          else:
-            self.txtDisplay.append("Host --> %s  %s " % (resposta, self.STATUS_FORMATO_ATIVO))
-
-
-
-
-
-  def appinit(self):
-    self.thread = RedesThread()
-    self.connect(self.thread, self.thread.signal, self.teste)
-    self.thread.start()
-
-
-
-
-  def teste(self,texto):
-    print("inasdfasdfsfs")
-    print(texto)
-
-
-
-  def teste2(self,texto):
-    print("Executando escaneamento")
-    print(texto)
-
-
-
 
 
 
@@ -222,41 +184,7 @@ class MainGui(QWidget):
       "<span style='color:red;font-weight:lighter'>=========================================================================</span>")
 
 
-  def check_online(self,redes):
-    for host_ip in redes:
 
-      try:
-
-        # resposta = subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
-        # universal_newlines = True
-
-        resposta = ()
-
-        if os.name == 'nt':
-
-          resposta = subprocess.getstatusoutput('ping -n 1 %s' % host_ip)
-
-        else:
-
-          resposta = subprocess.getstatusoutput('ping -c 1 %s' % host_ip)
-
-        texto = resposta[1]  # retirando resposta de uma tupla
-        ltexto = texto.lower()
-        posi_inacessivel = ltexto.find("inacess")  # Resposta para Destino inacessivel
-        posi_tempo_esgotado = ltexto.find("esgotado")  # Resposta para Destino inacessivel
-        inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
-        tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
-
-        if inacessivel != 'inacess':
-
-          if tempo_esgotado == 'esgotado':
-            self.txtDisplay.append("Host Inativo --> %s  %s " % (host_ip, self.STATUS_FORMATO_INATIVO))
-          else:
-            self.txtDisplay.append("Host --> %s  %s " % (host_ip, self.STATUS_FORMATO_ATIVO))
-
-
-      except subprocess.CalledProcessError:
-        self.txtDisplay.append("Erro de Procssamento")
 
 
   def getDescHost(self):
@@ -290,25 +218,41 @@ class MainGui(QWidget):
           self.txtDisplay.append('%s = %s' % (nome.prettyPrint(), val.prettyPrint()))
 
 
+
+
+
   def calcularRedes(self,ipRede = "127.0.0.1", maskRede = "30"):
     netaddr = ipRede[:15]  # endereço IP de rede
     netmask = maskRede.strip('/')[:15]  # máscara /24 ou 255.255.255.0
 
-    self.redes = IPNetwork(netaddr + '/' + netmask)
-    self.escrever(self.redes)
+    redes = IPNetwork(netaddr + '/' + netmask)
 
-    self.thread = RedesThread(self.redes)
-    self.connect(self.thread, self.thread.signal, self.tratarRespostaThread)
+
+    self.escrever(redes)
+
+    self.thread = RedesThread(redes)
+    self.connect(self.thread, self.thread.signal, self.check_online)
     self.thread.start()
-
-
-
-
-    #self.check_online(redes)
 
 
   def obterRedes(self):
     self.calcularRedes(self.inputIP.text(), self.inputMask.text())
+
+
+
+
+  def check_online(self,status,ip,estado_porta):
+
+
+    if status == 'INATIVO':
+      self.txtDisplay.append("HOST %s %s" % (ip,self.STATUS_FORMATO_INATIVO,))
+    else:
+      self.txtDisplay.append("HOST %s  %s  %s" % (ip,self.STATUS_FORMATO_ATIVO,estado_porta))
+
+
+
+
+
 
 
 

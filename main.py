@@ -15,23 +15,63 @@ app = QApplication(sys.argv)
 
 class RedesThread(QThread):
 
-  def __init__(self, parent=app):
+  def __init__(self, redes, parent=app):
 
+      self.rede = redes
 
       QThread.__init__(self, parent)
 
       self.signal =  SIGNAL("ops")
+      self.novaResposta = SIGNAL("resposta")
+
 
 
 
 
   def run(self):
     # time.sleep(2)
-    print("in thread")
-    self.emit(self.signal, "hi from HELL thread!")
+    self.emit(SIGNAL("ops"), "emitindo sinal asdfasd f fs")
+
+    for host_ip in range(2):
+
+      print(host_ip)
+
+      try:
+
+        # resposta = subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+        # universal_newlines = True
+
+        resposta = ()
+
+        if os.name == 'nt':
+
+          resposta = subprocess.getstatusoutput('ping -n 1 %s' % host_ip)
+
+        else:
+
+          resposta = subprocess.getstatusoutput('ping -c 1 %s' % host_ip)
+
+        texto = resposta[1]  # retirando resposta de uma tupla
+        ltexto = texto.lower()
+        posi_inacessivel = ltexto.find("inacess")  # Resposta para Destino inacessivel
+        posi_tempo_esgotado = ltexto.find("esgotado")  # Resposta para Destino inacessivel
+        inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
+        tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
+
+        if inacessivel != 'inacess':
+          self.emit(self.signal, "insacessivel")
+          print("inacessivel")
+          if tempo_esgotado == 'esgotado':
+            print("esgotado tempo limite")
+
+            self.emit(self.signal, "%XXXX INATIVO")
+          else:
+            self.emit(self.signal, "ATIVO XXXXXXXXXX")
 
 
+      except subprocess.CalledProcessError:
 
+        self.emit(self.novaResposta, "Erro de Procssamento")
 
 
 class MainGui(QWidget):
@@ -63,7 +103,7 @@ class MainGui(QWidget):
       self.inputMask = QLineEdit()
       self.inputIPAlvo = QLineEdit()
 
-      # Botoes
+      # Comandos
       self.bntSRede = QPushButton("Calcular Rede")
       self.connect(self.bntSRede,SIGNAL("clicked()"),self.obterRedes)
 
@@ -113,21 +153,45 @@ class MainGui(QWidget):
 
 
 
+  def scanearRede(self):
+    self.obterRedes()
+    self.thread = RedesThread(self.redes)
+    self.connect(self.thread, self.thread.signal, self.tratarRespostaThread)
+    self.thread.start()
+
+  def tratarRespostaThread(self,resposta):
+
+
+        print(resposta)
+
+
+        if resposta != 'inacess':
+
+          if resposta == 'esgotado':
+            self.txtDisplay.append("Host Inativo --> %s  %s " % (resposta, self.STATUS_FORMATO_INATIVO))
+          else:
+            self.txtDisplay.append("Host --> %s  %s " % (resposta, self.STATUS_FORMATO_ATIVO))
+
+
+
+
 
   def appinit(self):
     self.thread = RedesThread()
-    self.connect(self.thread, self.thread.signal, self.teste2)
+    self.connect(self.thread, self.thread.signal, self.teste)
     self.thread.start()
 
 
 
-  def teste(self):
+
+  def teste(self,texto):
     print("inasdfasdfsfs")
+    print(texto)
 
 
 
   def teste2(self,texto):
-    print("inasdfasdfsfs testes novamente")
+    print("Executando escaneamento")
     print(texto)
 
 
@@ -230,9 +294,17 @@ class MainGui(QWidget):
     netaddr = ipRede[:15]  # endereço IP de rede
     netmask = maskRede.strip('/')[:15]  # máscara /24 ou 255.255.255.0
 
-    redes = IPNetwork(netaddr + '/' + netmask)
-    self.escrever(redes)
-    self.check_online(redes)
+    self.redes = IPNetwork(netaddr + '/' + netmask)
+    self.escrever(self.redes)
+
+    self.thread = RedesThread(self.redes)
+    self.connect(self.thread, self.thread.signal, self.tratarRespostaThread)
+    self.thread.start()
+
+
+
+
+    #self.check_online(redes)
 
 
   def obterRedes(self):

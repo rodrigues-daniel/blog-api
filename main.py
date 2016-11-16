@@ -137,6 +137,7 @@ class BlackNight(QWidget):
 
     self.setWindowTitle("BlackNight   UNIRN - BSI  Turma 2014")
     self.setGeometry(200, 200, 820, 620)
+    self.setFixedWidth(820)
 
     # Entrada de Dados
     self.inputIP = QLineEdit()
@@ -150,8 +151,12 @@ class BlackNight(QWidget):
     self.connect(self.bntSRede, SIGNAL("clicked()"), self.obterRedes)
 
     self.bntAlvo = QPushButton("Obter Info")
+    self.connect(self.bntAlvo, SIGNAL("clicked()"),self.getDescHost)
 
-    self.bntArq = QPushButton("Obter Arquivo")
+    self.bntConect = QPushButton("Conectar no Alvo")
+    self.connect(self.bntConect, SIGNAL("clicked()"), self.conectarAoHost)
+
+    self.bntArq = QPushButton("Arquivo de Senhas")
     self.connect(self.bntArq, SIGNAL("clicked()"), self.lerSenhas)
 
     self.bntSRede.setFixedWidth(150)
@@ -178,7 +183,7 @@ class BlackNight(QWidget):
     vbox1.addWidget(self.inputIPAlvo)
     vbox1.addWidget(self.bntAlvo)
     vbox1.addWidget(self.bntArq)
-    vbox1.addWidget(self.le)
+    vbox1.addWidget(self.bntConect)
     vbox1.addStretch()
 
     # Saida
@@ -192,15 +197,36 @@ class BlackNight(QWidget):
 
     self.setLayout(hbox)
 
+  def conectarAoHost(self):
+
+    alvoTexto = self.inputIPAlvo.text()
+    alvo = alvoTexto[:15]
+
+    ssh = subprocess.Popen(["ssh", "%s" % alvo,"uname -a"],
+                           shell=False,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+    resposta = ssh.stdout.readlines()
+    if resposta == []:
+      erro = ssh.stderr.readlines()
+      self.txtDisplay.setText(str(erro))
+    else:
+      self.txtDisplay.setText(str(resposta))
+
+
+
+
+
   def lerSenhas(self):
     arquivo = QFileDialog.getOpenFileName(self, 'Arquivo de Senhas', os.path.dirname(os.path.abspath(__file__)),
-                                          "Arquivos de Texto (*.txt)")
-    print(arquivo)
+                                        "Arquivos de Texto (*.txt)")
 
-    with open(arquivo, 'r') as ins:
-      for line in ins:
-        print(line)
-      ins.close()
+    self.senhas = []
+
+    with open(arquivo, 'r') as linhas:
+      for line in linhas:
+        self.senhas.append(line)
+      linhas.close()
 
   def escrever(self, redes):
     self.txtDisplay.clear()

@@ -84,6 +84,9 @@ class RedesThread(QThread):
         self.emit(self.signal, "Erro de Procssamento")
 
 
+
+
+
 class MainGui(QWidget):
 
 
@@ -111,11 +114,16 @@ class MainGui(QWidget):
       self.inputMask = QLineEdit()
       self.inputIPAlvo = QLineEdit()
 
+      self.le = QLabel("Hello")
+
       # Comandos
       self.bntSRede = QPushButton("Calcular Rede")
       self.connect(self.bntSRede,SIGNAL("clicked()"),self.obterRedes)
 
       self.bntAlvo = QPushButton("Obter Info")
+
+      self.bntArq = QPushButton("Obter Arquivo")
+      self.connect(self.bntArq, SIGNAL("clicked()"), self.lerSenhas)
 
 
 
@@ -143,6 +151,8 @@ class MainGui(QWidget):
       vbox1.addWidget(self.bntSRede)
       vbox1.addWidget(self.inputIPAlvo)
       vbox1.addWidget(self.bntAlvo)
+      vbox1.addWidget(self.bntArq)
+      vbox1.addWidget(self.le)
       vbox1.addStretch()
 
       # Saida
@@ -155,6 +165,25 @@ class MainGui(QWidget):
       hbox.addLayout(vbox2)
 
       self.setLayout(hbox)
+
+  def lerSenhas(self):
+    arquivo = QFileDialog.getOpenFileName(self, 'Arquivo de Senhas',os.path.dirname(os.path.abspath(__file__)), "Arquivos de Texto (*.txt)")
+    print(arquivo)
+
+
+    with open(arquivo, 'r') as ins:
+
+      for line in ins:
+        print(line)
+      ins.close()
+
+
+
+
+
+
+
+
 
 
 
@@ -248,14 +277,6 @@ class MainGui(QWidget):
       self.txtDisplay.append("HOST %s %s" % (ip,self.STATUS_FORMATO_INATIVO,))
     else:
       self.txtDisplay.append("HOST %s  %s   &#160; &#160; &#160; <span style='color:#ffffff;font-weight:bold'> %s </span>" % (ip,self.STATUS_FORMATO_ATIVO,estado_porta))
-
-
-
-
-
-
-
-
 
 
 

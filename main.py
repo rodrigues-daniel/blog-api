@@ -100,22 +100,22 @@ class JanelaMae(QMainWindow):
     self.mdi.addSubWindow(subWindBlackNight)
 
     arquivo = bar.addMenu("Arquivo")
-    arquivo.addAction("Novo")
+    arquivo.addAction("Nova Janela")
     arquivo.addAction("Cascata")
     arquivo.addAction("Encaixado")
     arquivo.triggered[QAction].connect(self.windowaction)
-    self.setWindowTitle("MDI demo")
+    self.setWindowTitle("BlackNight v0.0.1")
     subWindBlackNight.show()
 
   def windowaction(self, q):
     print("disparou")
 
 
-    if q.text() == "Novo":
+    if q.text() == "Nova Janela":
       JanelaMae.count = JanelaMae.count + 1
       sub = QMdiSubWindow()
 
-      sub.setWidget(QTextEdit())
+      sub.setWidget(BlackNight())
       sub.setWindowTitle("Sub Janela" + str(JanelaMae.count))
       self.mdi.addSubWindow(sub)
       sub.show()

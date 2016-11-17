@@ -1,3 +1,7 @@
+# encoding: utf-8
+# encoding: iso-8859-1
+# encoding: win-1252
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import sys
@@ -13,10 +17,12 @@ from pysnmp.hlapi import getCmd
 
 app = QApplication(sys.argv)
 
+
+#tread que lista as maquinas da rede é chamado por self.thread na linha 294
 class RedesThread(QThread):
   def __init__(self, redes , parent=app):
 
-    self.lista_de_redes = redes
+    self.lista_de_redes = redes # passa a lista de ips
 
     QThread.__init__(self, parent)
 
@@ -25,40 +31,41 @@ class RedesThread(QThread):
     self.signal = SIGNAL("status")
     self.start()
 
-  def run(self):
-    # time.sleep(2)
-
+  def run(self): 
 
     for host_ip in self.lista_de_redes:
 
-      try:
-
-        # resposta = subprocess.check_call(['ping', '-n', '1', '{}'.format(host_ip)], stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
-        # universal_newlines = True
+      try:        
 
         resposta = ()
 
-        if os.name == 'nt':
+        if os.name == 'nt':  # ser for uma maquina windows (sistema nt) este trecho será executado
 
           resposta = subprocess.getstatusoutput('ping -n 1 %s' % host_ip)
 
 
-        else:
+        else:   # ser for uma maquina sistema posix  linux,mac etc..  este trecho será executado
 
           resposta = subprocess.getstatusoutput('ping -c 1 %s' % host_ip)
 
-        texto = resposta[1]  # retirando resposta de uma tupla
-        ltexto = texto.lower()
+        texto = resposta[1]  # retirando resposta da  tupla  no index 1
+        ltexto = texto.lower() # todo texto transformado em letras minusculas para facilitar no codigo
+        
+        # Resposta para Destino inacessivel
+        posi_inacessivel = ltexto.find('inacess') 
 
-        posi_inacessivel = ltexto.find('inacess')  # Resposta para Destino inacessivel
-
-        posi_tempo_esgotado = ltexto.find('esgotado')  # Resposta para Destino inacessivel
+        
+        # Resposta para tempo esgotado
+        posi_tempo_esgotado = ltexto.find('esgotado')  
         inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
 
         tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
-
+        
+        
+        # testa se  host inacessivel ou tempo esgotado
         if (inacessivel == 'inacess' or tempo_esgotado == 'esgotado'):
 
+          # enviara comando
           self.emit(self.signal, 'INATIVO', host_ip, "0")
 
         else:

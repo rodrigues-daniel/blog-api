@@ -5,9 +5,7 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import sys
-import pysnmp
 import os
-import threading
 import subprocess
 import time
 import socket
@@ -31,11 +29,11 @@ class RedesThread(QThread):
     self.signal = SIGNAL("status")
     self.start()
 
-  def run(self): 
+  def run(self):
 
     for host_ip in self.lista_de_redes:
 
-      try:        
+      try:
 
         resposta = ()
 
@@ -50,22 +48,22 @@ class RedesThread(QThread):
 
         texto = resposta[1]  # retirando resposta da  tupla  no index 1
         ltexto = texto.lower() # todo texto transformado em letras minusculas para facilitar no codigo
-        
-        # Resposta para Destino inacessivel
-        posi_inacessivel = ltexto.find('inacess') 
 
-        
+        # Resposta para Destino inacessivel
+        posi_inacessivel = ltexto.find('inacess')
+
+
         # Resposta para tempo esgotado
-        posi_tempo_esgotado = ltexto.find('esgotado')  
+        posi_tempo_esgotado = ltexto.find('esgotado')
         inacessivel = ltexto[posi_inacessivel:posi_inacessivel + 7]
 
         tempo_esgotado = ltexto[posi_tempo_esgotado:posi_tempo_esgotado + 8]
-        
-        
+
+
         # testa se  host inacessivel ou tempo esgotado
         if (inacessivel == 'inacess' or tempo_esgotado == 'esgotado'):
 
-          # enviara comando para linha 300 a ser processado na linha 309 
+          # enviara comando para linha 300 a ser processado na linha 309
           self.emit(self.signal, 'INATIVO', host_ip, "0")
 
         else:
@@ -144,7 +142,7 @@ class BlackNight(QWidget):
 
     self.setWindowTitle("BlackNight   UNIRN - BSI  Turma 2014")
     self.setGeometry(200, 200, 820, 620)
-    self.setFixedWidth(820)
+    self.setFixedWidth(850)
 
     # Entrada de Dados
     self.inputIP = QLineEdit()

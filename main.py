@@ -65,7 +65,7 @@ class RedesThread(QThread):
         # testa se  host inacessivel ou tempo esgotado
         if (inacessivel == 'inacess' or tempo_esgotado == 'esgotado'):
 
-          # enviara comando
+          # enviara comando para linha 300 a ser processado na linha 309 
           self.emit(self.signal, 'INATIVO', host_ip, "0")
 
         else:
@@ -304,6 +304,8 @@ class BlackNight(QWidget):
   def obterRedes(self):
     self.calcularRedes(self.inputIP.text(), self.inputMask.text())
 
+
+  #chamado na linha 300  pela thread
   def check_online(self, status, ip, estado_porta):
 
     if status == 'INATIVO':

@@ -1,0 +1,32 @@
+# Arquivos e diretórios gerados pelo Cargo
+/target/
+**/target/
+Cargo.lock
+
+# Arquivos de banco de dados SQLite (opcional, se você não quiser versionar o banco)
+*.db
+/blog.db
+
+# Variáveis de ambiente
+.env
+
+# Arquivos temporários
+*.tmp
+*.log
+
+# Sistemas de arquivos específicos
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ferramentas de migração Diesel
+/diesel.toml
+/migrations/*.lock
+
+# Outros arquivos ignorados
+**/*.rs.bk

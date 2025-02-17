@@ -30,3 +30,7 @@ Thumbs.db
 
 # Outros arquivos ignorados
 **/*.rs.bk
+
+# Added by cargo
+
+/target
